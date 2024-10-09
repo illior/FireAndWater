@@ -13,9 +13,10 @@ public class FireAndWater : ModuleRules
 			"CoreUObject",
 			"Engine",
 			"InputCore",
-			"EnhancedInput"
+			"EnhancedInput",
+			"UMG",
+			"Slate",
+			"SlateCore"
 		});
-
-		PrivateDependencyModuleNames.AddRange(new string[] {  });
 	}
 }

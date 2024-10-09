@@ -2,9 +2,12 @@
 
 #include "Player/FAWBaseCharacter.h"
 
+#include "Net/UnrealNetwork.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
+
+#include "Interaction/FAWInteractableActor.h"
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -13,6 +16,7 @@
 AFAWBaseCharacter::AFAWBaseCharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
+	bReplicates = true;
 
 	bUseControllerRotationYaw = false;
 
@@ -62,6 +66,84 @@ void AFAWBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &AFAWBaseCharacter::InputStartJump);
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &AFAWBaseCharacter::InputStopJump);
+		
+		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &AFAWBaseCharacter::InputStartInteract);
+		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Completed, this, &AFAWBaseCharacter::InputStopInteract);
+	}
+}
+
+void AFAWBaseCharacter::NotifyActorBeginOverlap(AActor* OtherActor)
+{
+	Super::NotifyActorBeginOverlap(OtherActor);
+
+	AFAWInteractableActor* InteractableActor = Cast<AFAWInteractableActor>(OtherActor);
+	if (InteractableActor != nullptr && InteractableActor->GetIsEnabled() && HasAuthority())
+	{
+		StartCanInteract(InteractableActor);
+	}
+}
+
+void AFAWBaseCharacter::NotifyActorEndOverlap(AActor* OtherActor)
+{
+	Super::NotifyActorEndOverlap(OtherActor);
+
+	AFAWInteractableActor* InteractableActor = Cast<AFAWInteractableActor>(OtherActor);
+	if (InteractableActor != nullptr && InteractableActor->GetIsEnabled() && HasAuthority())
+	{
+		StopCanInteract(InteractableActor);
+	}
+}
+
+void AFAWBaseCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AFAWBaseCharacter, InteractActor);
+}
+
+void AFAWBaseCharacter::StartCanInteract(AFAWInteractableActor* InteractableActor)
+{
+	InteractActor = TWeakObjectPtr<AFAWInteractableActor>(InteractableActor);
+
+	InteractableActor->StartCanInteract(this);
+}
+
+void AFAWBaseCharacter::StopCanInteract(AFAWInteractableActor* InteractableActor)
+{
+	InteractActor.Reset();
+
+	InteractableActor->StopCanInteract(this);
+}
+
+void AFAWBaseCharacter::Server_StartInteract_Implementation()
+{
+	if (InteractActor.IsValid() && InteractActor->GetInteractedPawn() == this)
+	{
+		InteractActor->StartInteract();
+	}
+}
+
+void AFAWBaseCharacter::Server_StopInteract_Implementation()
+{
+	if (InteractActor.IsValid() && InteractActor->GetInteractedPawn() == this)
+	{
+		InteractActor->StopInteract();
+	}
+}
+
+void AFAWBaseCharacter::StartInteract()
+{
+	if (InteractActor.IsValid() && InteractActor->GetInteractedPawn() == this)
+	{
+		InteractActor->StartHold();
+	}
+}
+
+void AFAWBaseCharacter::StopInteract()
+{
+	if (InteractActor.IsValid() && InteractActor->GetInteractedPawn() == this)
+	{
+		InteractActor->StopHold();
 	}
 }
 
@@ -109,4 +191,16 @@ void AFAWBaseCharacter::InputStartJump(const FInputActionValue& Value)
 void AFAWBaseCharacter::InputStopJump(const FInputActionValue& Value)
 {
 	StopJumping();
+}
+
+void AFAWBaseCharacter::InputStartInteract(const FInputActionValue& Value)
+{
+	StartInteract();
+	Server_StartInteract();
+}
+
+void AFAWBaseCharacter::InputStopInteract(const FInputActionValue& Value)
+{
+	StopInteract();
+	Server_StopInteract();
 }
