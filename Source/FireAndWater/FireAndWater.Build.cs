@@ -16,7 +16,9 @@ public class FireAndWater : ModuleRules
 			"EnhancedInput",
 			"UMG",
 			"Slate",
-			"SlateCore"
+			"SlateCore",
+			"OnlineSubsystem",
+			"OnlineSubsystemSteam"
 		});
 	}
 }
