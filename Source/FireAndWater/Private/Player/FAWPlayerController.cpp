@@ -2,6 +2,9 @@
 
 #include "Player/FAWPlayerController.h"
 
+#include "GameFramework/CharacterMovementComponent.h"
+
+#include "Player/FAWBaseCharacter.h"
 #include "OnlineSessionSettings.h"
 #include "Online/OnlineSessionNames.h"
 

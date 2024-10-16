@@ -2,13 +2,21 @@
 
 #include "Player/FAWBaseCharacter.h"
 
+#include "Kismet/GameplayStatics.h"
+#include "NiagaraFunctionLibrary.h"
 #include "Net/UnrealNetwork.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
+#include "NiagaraComponent.h"
 
+#include "EngineUtils.h"
+#include "GameFramework/PlayerStart.h"
 #include "Interaction/FAWInteractableActor.h"
 
+#include "Materials\MaterialParameterCollection.h"
+#include "Kismet/KismetMaterialLibrary.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
@@ -45,31 +53,77 @@ AFAWBaseCharacter::AFAWBaseCharacter()
 	CameraComponent->SetupAttachment(SpringArmComponent);
 	CameraComponent->bUsePawnControlRotation = false;
 
+	// Niagara
+	NiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("Niagara"));
+	NiagaraComponent->SetupAttachment(GetMesh());
+	NiagaraComponent->bAutoActivate = false;
+
+	// Setup Movement
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->JumpZVelocity = 620.0f;
+}
+
+void AFAWBaseCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AFAWBaseCharacter, InteractActor);
+	DOREPLIFETIME(AFAWBaseCharacter, IsDead);
+}
+
+void AFAWBaseCharacter::AddCheckPoint(AActor* InActor)
+{
+	if (InActor != nullptr && !CheckPoints.Contains(InActor))
+	{
+		CheckPoints.Add(InActor);
+	}
+}
+
+void AFAWBaseCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+
+	const ENetMode NetMode = GetNetMode();
+	if (DissolveCurve != nullptr)
+	{
+		FOnTimelineFloatStatic OnTimelineCallback;
+		OnTimelineCallback.BindUObject(this, &AFAWBaseCharacter::OnDissolve);
+		DisappearTimeline.AddInterpFloat(DissolveCurve, OnTimelineCallback);
+
+		if (HasAuthority())
+		{
+			FOnTimelineEventStatic OnTimelineFinishedCallback;
+			OnTimelineFinishedCallback.BindUObject(this, &AFAWBaseCharacter::OnDissolveComplete);
+			DisappearTimeline.SetTimelineFinishedFunc(OnTimelineFinishedCallback);
+		}
+	}
+
+	NiagaraComponent->SetVariableLinearColor(VFXColorName, VFXColor);
 }
 
 void AFAWBaseCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	DisappearTimeline.TickTimeline(DeltaTime);
 }
 
-void AFAWBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+float AFAWBaseCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
+	float ActualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 
-	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
+	IsDead = true;
+
+	DisappearTimeline.PlayFromStart();
+
+	if (!IsNetMode(NM_DedicatedServer))
 	{
-		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AFAWBaseCharacter::InputMove);
-		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AFAWBaseCharacter::InputLook);
-
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &AFAWBaseCharacter::InputStartJump);
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &AFAWBaseCharacter::InputStopJump);
-		
-		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &AFAWBaseCharacter::InputStartInteract);
-		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Completed, this, &AFAWBaseCharacter::InputStopInteract);
+		NiagaraComponent->SetFloatParameter(DissolveVFXMaskName, 1.0f);
+		UKismetMaterialLibrary::SetScalarParameterValue(GetWorld(), DissolveParameterCollection, DissolveParameterCollectionMaskName, 1.0f);
+		NiagaraComponent->Activate();
 	}
+
+	return ActualDamage;
 }
 
 void AFAWBaseCharacter::NotifyActorBeginOverlap(AActor* OtherActor)
@@ -94,25 +148,37 @@ void AFAWBaseCharacter::NotifyActorEndOverlap(AActor* OtherActor)
 	}
 }
 
-void AFAWBaseCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+void AFAWBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-	DOREPLIFETIME(AFAWBaseCharacter, InteractActor);
+	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
+	{
+		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AFAWBaseCharacter::InputMove);
+		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AFAWBaseCharacter::InputLook);
+
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &AFAWBaseCharacter::InputStartJump);
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &AFAWBaseCharacter::InputStopJump);
+		
+		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &AFAWBaseCharacter::InputStartInteract);
+		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Completed, this, &AFAWBaseCharacter::InputStopInteract);
+	}
 }
 
-void AFAWBaseCharacter::StartCanInteract(AFAWInteractableActor* InteractableActor)
+void AFAWBaseCharacter::OnRepIsDead()
 {
-	InteractActor = TWeakObjectPtr<AFAWInteractableActor>(InteractableActor);
+	NiagaraComponent->SetFloatParameter(DissolveVFXMaskName, 1.0f);
+	UKismetMaterialLibrary::SetScalarParameterValue(GetWorld(), DissolveParameterCollection, DissolveParameterCollectionMaskName, 1.0f);
 
-	InteractableActor->StartCanInteract(this);
-}
-
-void AFAWBaseCharacter::StopCanInteract(AFAWInteractableActor* InteractableActor)
-{
-	InteractActor.Reset();
-
-	InteractableActor->StopCanInteract(this);
+	if (IsDead)
+	{
+		NiagaraComponent->Activate();
+		DisappearTimeline.PlayFromStart();
+	}
+	else
+	{
+		NiagaraComponent->Deactivate();
+	}
 }
 
 void AFAWBaseCharacter::Server_StartInteract_Implementation()
@@ -131,6 +197,59 @@ void AFAWBaseCharacter::Server_StopInteract_Implementation()
 	}
 }
 
+void AFAWBaseCharacter::OnDissolve(float Value)
+{
+	if (!IsDead || IsNetMode(ENetMode::NM_DedicatedServer))
+	{
+		return;
+	}
+
+	NiagaraComponent->SetFloatParameter(DissolveVFXMaskName, Value);
+	UKismetMaterialLibrary::SetScalarParameterValue(GetWorld(), DissolveParameterCollection, DissolveParameterCollectionMaskName, Value);
+}
+
+void AFAWBaseCharacter::OnDissolveComplete()
+{
+	IsDead = false;
+
+	if (!IsNetMode(NM_DedicatedServer))
+	{
+		NiagaraComponent->SetFloatParameter(DissolveVFXMaskName, 1.0f);
+		UKismetMaterialLibrary::SetScalarParameterValue(GetWorld(), DissolveParameterCollection, DissolveParameterCollectionMaskName, 1.0f);
+		NiagaraComponent->Deactivate();
+	}
+
+	FVector RespawnLocation;
+	if (CheckPoints.Num() != 0)
+	{
+		RespawnLocation = CheckPoints[CheckPoints.Num() - 1] != nullptr ? CheckPoints[CheckPoints.Num() - 1]->GetActorLocation() : FVector::ZeroVector;
+	}
+	else
+	{
+		for (TActorIterator<AActor> It(GetWorld(), APlayerStart::StaticClass()); It; ++It)
+		{
+			RespawnLocation = (*It)->GetActorLocation();
+			break;
+		}
+	}
+
+	SetActorLocation(RespawnLocation);
+}
+
+void AFAWBaseCharacter::StartCanInteract(AFAWInteractableActor* InteractableActor)
+{
+	InteractActor = TWeakObjectPtr<AFAWInteractableActor>(InteractableActor);
+
+	InteractableActor->StartCanInteract(this);
+}
+
+void AFAWBaseCharacter::StopCanInteract(AFAWInteractableActor* InteractableActor)
+{
+	InteractActor.Reset();
+
+	InteractableActor->StopCanInteract(this);
+}
+
 void AFAWBaseCharacter::StartInteract()
 {
 	if (InteractActor.IsValid() && InteractActor->GetInteractedPawn() == this)
@@ -147,15 +266,9 @@ void AFAWBaseCharacter::StopInteract()
 	}
 }
 
-void AFAWBaseCharacter::BeginPlay()
-{
-	Super::BeginPlay();
-
-}
-
 void AFAWBaseCharacter::InputMove(const FInputActionValue& Value)
 {
-	if (Controller == nullptr)
+	if (Controller == nullptr || IsDead)
 	{
 		return;
 	}
@@ -185,22 +298,42 @@ void AFAWBaseCharacter::InputLook(const FInputActionValue& Value)
 
 void AFAWBaseCharacter::InputStartJump(const FInputActionValue& Value)
 {
+	if (IsDead)
+	{
+		return;
+	}
+
 	Jump();
 }
 
 void AFAWBaseCharacter::InputStopJump(const FInputActionValue& Value)
 {
+	if (IsDead)
+	{
+		return;
+	}
+
 	StopJumping();
 }
 
 void AFAWBaseCharacter::InputStartInteract(const FInputActionValue& Value)
 {
+	if (IsDead)
+	{
+		return;
+	}
+
 	StartInteract();
 	Server_StartInteract();
 }
 
 void AFAWBaseCharacter::InputStopInteract(const FInputActionValue& Value)
 {
+	if (IsDead)
+	{
+		return;
+	}
+
 	StopInteract();
 	Server_StopInteract();
 }

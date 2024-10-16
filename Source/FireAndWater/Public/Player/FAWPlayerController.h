@@ -41,5 +41,4 @@ protected:
 	void OnJoinSession(const FName InSessionName, EOnJoinSessionCompleteResult::Type InResultType);
 
 	virtual void BeginPlay() override;
-
 };
