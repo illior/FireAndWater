@@ -14,6 +14,8 @@ class UNiagaraComponent;
 class AFAWInteractableActor;
 
 class UMaterialParameterCollection;
+class UDamageType;
+
 class UInputAction;
 struct FInputActionValue;
 
@@ -78,6 +80,9 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Character")
 	TArray<AActor*> CheckPoints;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Character")
+	TSubclassOf<UDamageType> ResistDamageType;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Death")
 	TObjectPtr<UCurveFloat> DissolveCurve;
 
@@ -94,6 +99,8 @@ protected:
 	FLinearColor VFXColor;
 
 	FTimeline DisappearTimeline;
+
+	bool CanMove = true;
 
 	//~ Begin RPC functions.
 	UFUNCTION()

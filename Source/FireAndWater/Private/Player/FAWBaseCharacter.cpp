@@ -11,12 +11,14 @@
 #include "Camera/CameraComponent.h"
 #include "NiagaraComponent.h"
 
-#include "EngineUtils.h"
-#include "GameFramework/PlayerStart.h"
-#include "Interaction/FAWInteractableActor.h"
-
 #include "Materials\MaterialParameterCollection.h"
 #include "Kismet/KismetMaterialLibrary.h"
+#include "EngineUtils.h"
+#include "Engine/DamageEvents.h"
+#include "GameFramework/PlayerStart.h"
+
+#include "Interaction/FAWInteractableActor.h"
+
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
@@ -61,6 +63,7 @@ AFAWBaseCharacter::AFAWBaseCharacter()
 	// Setup Movement
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->JumpZVelocity = 620.0f;
+	GetCharacterMovement()->AirControl = 0.4f;
 }
 
 void AFAWBaseCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -111,6 +114,14 @@ void AFAWBaseCharacter::Tick(float DeltaTime)
 float AFAWBaseCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
 	float ActualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+	
+	if (DamageEvent.DamageTypeClass != nullptr)
+	{
+		if (DamageEvent.DamageTypeClass->IsChildOf(ResistDamageType))
+		{
+			return ActualDamage;
+		}
+	}
 
 	IsDead = true;
 
@@ -254,12 +265,15 @@ void AFAWBaseCharacter::StartInteract()
 {
 	if (InteractActor.IsValid() && InteractActor->GetInteractedPawn() == this)
 	{
+		CanMove = false;
 		InteractActor->StartHold();
 	}
 }
 
 void AFAWBaseCharacter::StopInteract()
 {
+	CanMove = true;
+
 	if (InteractActor.IsValid() && InteractActor->GetInteractedPawn() == this)
 	{
 		InteractActor->StopHold();
@@ -268,7 +282,7 @@ void AFAWBaseCharacter::StopInteract()
 
 void AFAWBaseCharacter::InputMove(const FInputActionValue& Value)
 {
-	if (Controller == nullptr || IsDead)
+	if (Controller == nullptr || IsDead || !CanMove)
 	{
 		return;
 	}

@@ -54,6 +54,7 @@ void AFAWInteractableActor::StartInteract()
 {
 	if (ShouldHold)
 	{
+		CompleteHold = false;
 		GetWorldTimerManager().SetTimer(HoldTimer, this, &AFAWInteractableActor::Complete, HoldTime, false);
 	}
 	else
@@ -68,7 +69,7 @@ void AFAWInteractableActor::StartInteract()
 		}
 	}
 
-	ReceiveStartInteract();
+	OnStartInteract.Broadcast(this, InteractedPawn.Get());
 }
 
 void AFAWInteractableActor::StopInteract()
@@ -78,7 +79,23 @@ void AFAWInteractableActor::StopInteract()
 		GetWorldTimerManager().ClearTimer(HoldTimer);
 	}
 
-	ReceiveStopInteract();
+	if (ShouldKeepHold && CompleteHold)
+	{
+		OnCancelHold.Broadcast(this, InteractedPawn.Get());
+		
+		Multicast_SetEnabled(false);
+		if (IsReusable)
+		{
+			FTimerDelegate Delegate;
+			Delegate.BindUFunction(this, "Multicast_SetEnabled", true);
+
+			GetWorldTimerManager().SetTimer(CooldownTimer, Delegate, CooldownTime, false);
+		}
+	}
+	else
+	{
+		OnStopInteract.Broadcast(this, InteractedPawn.Get());
+	}
 }
 
 void AFAWInteractableActor::StartHold()
@@ -137,16 +154,23 @@ void AFAWInteractableActor::Multicast_StopCanInteract_Implementation(APawn* Pawn
 
 void AFAWInteractableActor::Complete()
 {
-	Multicast_SetEnabled(false);
-	if (IsReusable)
+	if (ShouldKeepHold)
 	{
-		FTimerDelegate Delegate;
-		Delegate.BindUFunction(this, "Multicast_SetEnabled", true);
+		CompleteHold = true;
+	}
+	else
+	{
+		Multicast_SetEnabled(false);
+		if (IsReusable)
+		{
+			FTimerDelegate Delegate;
+			Delegate.BindUFunction(this, "Multicast_SetEnabled", true);
 
-		GetWorldTimerManager().SetTimer(CooldownTimer, Delegate, CooldownTime, false);
+			GetWorldTimerManager().SetTimer(CooldownTimer, Delegate, CooldownTime, false);
+		}
 	}
 
-	ReceiveComplete();
+	OnCompleteHold.Broadcast(this, InteractedPawn.Get());
 }
 
 void AFAWInteractableActor::ShowWidget()
