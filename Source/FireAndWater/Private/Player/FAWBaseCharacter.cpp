@@ -64,6 +64,7 @@ AFAWBaseCharacter::AFAWBaseCharacter()
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->JumpZVelocity = 620.0f;
 	GetCharacterMovement()->AirControl = 0.4f;
+	GetCharacterMovement()->GravityScale = 1.4f;
 }
 
 void AFAWBaseCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

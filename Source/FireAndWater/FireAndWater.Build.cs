@@ -15,9 +15,9 @@ public class FireAndWater : ModuleRules
 			"InputCore",
 			"EnhancedInput",
 			"UMG",
-			"Niagara",
 			"Slate",
 			"SlateCore",
+			"Niagara",
 			"OnlineSubsystem",
 			"OnlineSubsystemSteam"
 		});

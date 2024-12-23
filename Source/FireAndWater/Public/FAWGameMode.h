@@ -13,5 +13,10 @@ class FIREANDWATER_API AFAWGameMode : public AGameMode
 
 
 protected:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Classes, meta = (DisplayAfter = "DefaultPawnClass"))
+	TSubclassOf<APawn> DefaultSecondPawnClass;
+
+	virtual UClass* GetDefaultPawnClassForController_Implementation(AController* InController) override;
+
 	virtual void BeginPlay() override;
 };

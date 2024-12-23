@@ -2,17 +2,20 @@
 
 #include "FAWGameMode.h"
 
-//#include "OnlineSubsystem.h"
+UClass* AFAWGameMode::GetDefaultPawnClassForController_Implementation(AController* InController)
+{
+	int32 Players = GetNumPlayers();
+	if (Players % 2 == 1)
+	{
+		return DefaultPawnClass;
+	}
+	else
+	{
+		return DefaultSecondPawnClass;
+	}
+}
 
 void AFAWGameMode::BeginPlay()
 {
 	Super::BeginPlay();
-
-	/*IOnlineSubsystem* OnlineSubsystem = IOnlineSubsystem::Get();
-	if (OnlineSubsystem != nullptr)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Black, FString::Printf(TEXT("Subsystem name = %s"), *OnlineSubsystem->GetSubsystemName().ToString()));
-
-		IOnlineSessionPtr OnlineSession = OnlineSubsystem->GetSessionInterface();
-	}*/
 }

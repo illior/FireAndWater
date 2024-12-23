@@ -81,6 +81,7 @@ void AFAWInteractableActor::StopInteract()
 
 	if (ShouldKeepHold && CompleteHold)
 	{
+		CompleteHold = false;
 		OnCancelHold.Broadcast(this, InteractedPawn.Get());
 		
 		Multicast_SetEnabled(false);
@@ -158,7 +159,10 @@ void AFAWInteractableActor::Complete()
 	{
 		CompleteHold = true;
 	}
-	else
+
+	OnCompleteHold.Broadcast(this, InteractedPawn.Get());
+
+	if (!ShouldKeepHold)
 	{
 		Multicast_SetEnabled(false);
 		if (IsReusable)
@@ -169,8 +173,6 @@ void AFAWInteractableActor::Complete()
 			GetWorldTimerManager().SetTimer(CooldownTimer, Delegate, CooldownTime, false);
 		}
 	}
-
-	OnCompleteHold.Broadcast(this, InteractedPawn.Get());
 }
 
 void AFAWInteractableActor::ShowWidget()
@@ -178,14 +180,16 @@ void AFAWInteractableActor::ShowWidget()
 	WidgetComponent->SetVisibility(true);
 	GetWorldTimerManager().ClearTimer(HideWidgetTimer);
 
-	FTimerHandle TimerHandler;
-	GetWorldTimerManager().SetTimer(TimerHandler, [this]() {
+	FTimerDelegate TimerDelegate;
+	TimerDelegate.BindLambda([this]() {
 		UFAWInteractWidget* InteractWidget = Cast<UFAWInteractWidget>(WidgetComponent->GetUserWidgetObject());
 		if (InteractWidget != nullptr)
 		{
 			InteractWidget->StartShow();
 		}
-	}, 0.01f, false);
+		});
+
+	GetWorldTimerManager().SetTimerForNextTick(TimerDelegate);
 }
 
 void AFAWInteractableActor::HideWidget()

@@ -2,143 +2,61 @@
 
 #include "Player/FAWPlayerController.h"
 
-#include "GameFramework/CharacterMovementComponent.h"
-
-#include "Player/FAWBaseCharacter.h"
-#include "OnlineSessionSettings.h"
-#include "Online/OnlineSessionNames.h"
-
+#include "UI/FAWHUD.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "InputActionValue.h"
 
-AFAWPlayerController::AFAWPlayerController() : 
-	OnCreateSessionCompleteDelegate(FOnCreateSessionCompleteDelegate::CreateUObject(this, &AFAWPlayerController::OnSessionCreated)),
-	OnFindSessionsCompleteDelegate(FOnFindSessionsCompleteDelegate::CreateUObject(this, &AFAWPlayerController::OnSessionFounded)),
-	OnJoinSessionCompleteDelegate(FOnJoinSessionCompleteDelegate::CreateUObject(this, &AFAWPlayerController::OnJoinSession))
+AFAWPlayerController::AFAWPlayerController()
 {
 
 }
 
-void AFAWPlayerController::CreateSession()
+void AFAWPlayerController::ResumeGame()
 {
-	if (!OnlineSession.IsValid())
+	UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
+	if (Subsystem != nullptr)
 	{
-		return;
+		Subsystem->ClearAllMappings();
+		Subsystem->AddMappingContext(MovementMappingContext, 0);
 	}
 
-	FNamedOnlineSession* NamedSession =  OnlineSession->GetNamedSession(NAME_GameSession);
-	if (NamedSession != nullptr)
+	SetInputMode(FInputModeGameOnly());
+	bShowMouseCursor = false;
+
+	AFAWHUD* HUD = GetHUD<AFAWHUD>();
+	if (HUD != nullptr)
 	{
-		OnlineSession->DestroySession(NAME_GameSession);
-	}
-
-	ULocalPlayer* LocalPlayer = GetLocalPlayer();
-	
-	FOnlineSessionSettings SessionSetings;
-	SessionSetings.bAllowJoinInProgress = true;
-	SessionSetings.bIsLANMatch = false;
-	SessionSetings.NumPublicConnections = 4;
-	SessionSetings.bAllowJoinViaPresence = true;
-	SessionSetings.bUsesPresence = true;
-	SessionSetings.bShouldAdvertise = true;
-	SessionSetings.bUseLobbiesIfAvailable = true;
-	SessionSetings.Set(FName(TEXT("illiorPassword")), FString(TEXT("123")), EOnlineDataAdvertisementType::ViaOnlineServiceAndPing);
-
-	OnlineSession->CreateSession(*LocalPlayer->GetPreferredUniqueNetId(), NAME_GameSession, SessionSetings);
-}
-
-void AFAWPlayerController::FindSession()
-{
-	if (!OnlineSession.IsValid())
-	{
-		return;
-	}
-
-	ULocalPlayer* LocalPlayer = GetLocalPlayer();
-
-	SessionSearch->bIsLanQuery = false;
-	SessionSearch->MaxSearchResults = 100;
-	SessionSearch->QuerySettings.Set(SEARCH_PRESENCE, true, EOnlineComparisonOp::Equals);
-
-	OnlineSession->FindSessions(*LocalPlayer->GetPreferredUniqueNetId(), SessionSearch.ToSharedRef());
-	GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Black, TEXT("Start searching session"));
-}
-
-void AFAWPlayerController::OnSessionCreated(FName InSessionName, bool InWasCreated)
-{
-	GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Black, FString::Printf(TEXT("InSessionName = %s, InWasCreated = %s"), *InSessionName.ToString(), InWasCreated ? TEXT("true") : TEXT("false")));
-
-	GetWorld()->ServerTravel(TEXT("/Game/FireAndWater/Maps/TestMap?listen"), true);
-}
-
-void AFAWPlayerController::OnSessionFounded(bool InWasFounded)
-{
-	if (!InWasFounded)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Black, TEXT("Session not found"));
-
-		return;
-	}
-
-	for (const FOnlineSessionSearchResult& Result : SessionSearch->SearchResults)
-	{
-		FString SessionId = Result.GetSessionIdStr();
-		FString UserName = Result.Session.OwningUserName;
-
-		GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Black, FString::Printf(TEXT("SessionId = %s, UserName = %s"), *SessionId, *UserName));
-
-		FString Password;
-		Result.Session.SessionSettings.Get(FName(TEXT("illiorPassword")), Password);
-
-		if (OnlineSession.IsValid() && Password == FString(TEXT("123")))
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Black, TEXT("Session found, try connect"));
-
-			ULocalPlayer* LocalPlayer = GetLocalPlayer();
-
-			OnlineSession->JoinSession(*LocalPlayer->GetPreferredUniqueNetId(), NAME_GameSession, Result);
-			break;
-		}
+		HUD->ClosePauseMenu();
 	}
 }
 
-void AFAWPlayerController::OnJoinSession(const FName InSessionName, EOnJoinSessionCompleteResult::Type InResultType)
+void AFAWPlayerController::PauseGame()
 {
-	switch (InResultType)
+	UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
+	if (Subsystem != nullptr)
 	{
-	case EOnJoinSessionCompleteResult::Success:
-		GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Black, TEXT("Join session Success"));
-		break;
-	case EOnJoinSessionCompleteResult::SessionIsFull:
-		GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Black, TEXT("Join session SessionIsFull"));
-		break;
-	case EOnJoinSessionCompleteResult::SessionDoesNotExist:
-		GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Black, TEXT("Join session SessionDoesNotExist"));
-		break;
-	case EOnJoinSessionCompleteResult::CouldNotRetrieveAddress:
-		GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Black, TEXT("Join session CouldNotRetrieveAddress"));
-		break;
-	case EOnJoinSessionCompleteResult::AlreadyInSession:
-		GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Black, TEXT("Join session AlreadyInSession"));
-		break;
-	case EOnJoinSessionCompleteResult::UnknownError:
-		GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Black, TEXT("Join session UnknownError"));
-		break;
-	default:
-		break;
+		Subsystem->ClearAllMappings();
+		Subsystem->AddMappingContext(MenuMappingContext, 0);
 	}
 
-	if (InResultType == EOnJoinSessionCompleteResult::Success)
+	SetInputMode(FInputModeGameAndUI());
+	bShowMouseCursor = true;
+
+	AFAWHUD* HUD = GetHUD<AFAWHUD>();
+	if (HUD != nullptr)
 	{
-		if (OnlineSession.IsValid())
-		{
-			FString ConnectionInfo;
-			OnlineSession->GetResolvedConnectString(NAME_GameSession, ConnectionInfo);
+		HUD->OpenPauseMenu();
+	}
+}
 
-			GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Black, FString::Printf(TEXT("Connecion info = %s"), *ConnectionInfo));
+void AFAWPlayerController::SetupInputComponent()
+{
+	Super::SetupInputComponent();
 
-			ClientTravel(ConnectionInfo, ETravelType::TRAVEL_Absolute);
-		}
+	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(InputComponent))
+	{
+		EnhancedInputComponent->BindAction(PauseGameAction, ETriggerEvent::Started, this, &AFAWPlayerController::InputPause);
 	}
 }
 
@@ -155,21 +73,9 @@ void AFAWPlayerController::BeginPlay()
 		Subsystem->ClearAllMappings();
 		Subsystem->AddMappingContext(MovementMappingContext, 0);
 	}
+}
 
-	IOnlineSubsystem* OnlineSubsystem = IOnlineSubsystem::Get();
-	if (OnlineSubsystem != nullptr)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Black, FString::Printf(TEXT("Subsystem name = %s"), *OnlineSubsystem->GetSubsystemName().ToString()));
-
-		OnlineSession = OnlineSubsystem->GetSessionInterface();
-	}
-
-	if (OnlineSession.IsValid())
-	{
-		OnlineSession->AddOnCreateSessionCompleteDelegate_Handle(OnCreateSessionCompleteDelegate);
-		OnlineSession->AddOnFindSessionsCompleteDelegate_Handle(OnFindSessionsCompleteDelegate);
-		OnlineSession->AddOnJoinSessionCompleteDelegate_Handle(OnJoinSessionCompleteDelegate);
-	}
-
-	SessionSearch = MakeShareable(new FOnlineSessionSearch());
+void AFAWPlayerController::InputPause(const FInputActionValue& Value)
+{
+	PauseGame();
 }

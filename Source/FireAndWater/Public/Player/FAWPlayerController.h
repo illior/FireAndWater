@@ -9,6 +9,8 @@
 #include "FAWPlayerController.generated.h"
 
 class UInputMappingContext;
+class UInputAction;
+struct FInputActionValue;
 
 UCLASS()
 class FIREANDWATER_API AFAWPlayerController : public APlayerController
@@ -19,26 +21,26 @@ class FIREANDWATER_API AFAWPlayerController : public APlayerController
 public:
 	AFAWPlayerController();
 
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "PlayerController")
+	void ResumeGame();
+
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "PlayerController")
+	void PauseGame();
+
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
-	UInputMappingContext* MovementMappingContext;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputMappingContext> MovementMappingContext;
 
-	TSharedPtr<FOnlineSessionSearch> SessionSearch;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputMappingContext> MenuMappingContext;
 
-	IOnlineSessionPtr OnlineSession;
-	FOnCreateSessionCompleteDelegate OnCreateSessionCompleteDelegate;
-	FOnFindSessionsCompleteDelegate OnFindSessionsCompleteDelegate;
-	FOnJoinSessionCompleteDelegate OnJoinSessionCompleteDelegate;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> PauseGameAction;
 
-	UFUNCTION(BlueprintCallable)
-	void CreateSession();
-
-	UFUNCTION(BlueprintCallable)
-	void FindSession();
-
-	void OnSessionCreated(FName InSessionName, bool InWasCreated);
-	void OnSessionFounded(bool InWasFounded);
-	void OnJoinSession(const FName InSessionName, EOnJoinSessionCompleteResult::Type InResultType);
-
+	virtual void SetupInputComponent() override;
 	virtual void BeginPlay() override;
+
+private:
+	void InputPause(const FInputActionValue& Value);
+
 };

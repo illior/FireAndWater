@@ -69,22 +69,23 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Interaction")
 	TWeakObjectPtr<APawn> InteractedPawn;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interaction")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction")
 	bool IsEnabled = true;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Interaction")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction")
 	bool IsReusable = true;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Interaction", meta = (EditCondition = "IsReusable"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction", meta = (EditCondition = "IsReusable"))
 	float CooldownTime = 3.0f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Interaction")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction")
 	bool ShouldHold = false;
 	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Interaction", meta = (EditCondition = "ShouldHold"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction", meta = (EditCondition = "ShouldHold"))
 	float HoldTime = 3.0f;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Interaction", meta = (EditCondition = "ShouldHold"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction", meta = (EditCondition = "ShouldHold"))
 	bool ShouldKeepHold = false;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Interaction")
 	bool CompleteHold = false;
 
 	FTimerHandle CooldownTimer;
