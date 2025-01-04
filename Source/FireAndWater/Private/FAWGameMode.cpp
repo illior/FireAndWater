@@ -2,17 +2,33 @@
 
 #include "FAWGameMode.h"
 
+#include "Player/FAWPlayerState.h"
+
+void AFAWGameMode::RestartPlayer(AController* NewPlayer)
+{
+	Super::RestartPlayer(NewPlayer);
+}
+
+AActor* AFAWGameMode::FindPlayerStart_Implementation(AController* Player, const FString& IncomingName)
+{
+	AFAWPlayerState* PlayerState = Player->GetPlayerState<AFAWPlayerState>();
+	if (PlayerState == nullptr || PlayerState->GetLastCheckPoint() == nullptr)
+	{
+		return Super::FindPlayerStart_Implementation(Player, IncomingName);
+	}
+
+	return PlayerState->GetLastCheckPoint();
+}
+
 UClass* AFAWGameMode::GetDefaultPawnClassForController_Implementation(AController* InController)
 {
-	int32 Players = GetNumPlayers();
-	if (Players % 2 == 1)
+	AFAWPlayerState* PlayerState = InController->GetPlayerState<AFAWPlayerState>();
+	if (PlayerState != nullptr)
 	{
-		return DefaultPawnClass;
+		return PlayerState->GetPawnClass();
 	}
-	else
-	{
-		return DefaultSecondPawnClass;
-	}
+
+	return DefaultPawnClass;
 }
 
 void AFAWGameMode::BeginPlay()

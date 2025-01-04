@@ -27,6 +27,7 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "PlayerController")
 	void PauseGame();
 
+	void RestartWithDelay(float Delay);
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputMappingContext> MovementMappingContext;

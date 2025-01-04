@@ -3,7 +3,7 @@
 #include "Animation/FAWAnimInstance.h"
 
 #include "GameFramework/Character.h"
-#include "Components/CapsuleComponent.h"
+#include "Components/FAWCharacterMovementComponent.h"
 
 void UFAWAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
@@ -15,16 +15,7 @@ void UFAWAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		return;
 	}
 
-	// Temp solution, fix later
-	const float CapsuleHalfHeight = Character->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight();
-
-	const FVector TraceStart(Character->GetActorLocation());
-	const FVector TraceEnd(TraceStart.X, TraceStart.Y, (TraceStart.Z - 100000.0f - CapsuleHalfHeight));
-	FCollisionQueryParams QueryParams;
-	QueryParams.AddIgnoredActor(Character);
-
-	FHitResult HitResult;
-	GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_Visibility, QueryParams);
-
-	GroundDistance = FMath::Max(HitResult.Distance - CapsuleHalfHeight, 0.0f);
+	UFAWCharacterMovementComponent* CharMoveComp = CastChecked<UFAWCharacterMovementComponent>(Character->GetCharacterMovement());
+	const FFAWCharacterGroundInfo& GroundInfo = CharMoveComp->GetGroundInfo();
+	GroundDistance = GroundInfo.GroundDistance;
 }

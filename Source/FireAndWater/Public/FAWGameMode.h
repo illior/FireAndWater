@@ -12,6 +12,13 @@ class FIREANDWATER_API AFAWGameMode : public AGameMode
 	GENERATED_BODY()
 
 
+public:
+	UClass* GetDefaultPawnClass() const { return DefaultPawnClass; };
+	UClass* GetDefaultSecondPawnClass() const { return DefaultSecondPawnClass; };
+
+	virtual void RestartPlayer(AController* NewPlayer) override;
+	virtual AActor* FindPlayerStart_Implementation(AController* Player, const FString& IncomingName = TEXT("")) override;
+
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Classes, meta = (DisplayAfter = "DefaultPawnClass"))
 	TSubclassOf<APawn> DefaultSecondPawnClass;
