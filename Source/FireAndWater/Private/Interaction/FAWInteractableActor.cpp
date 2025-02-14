@@ -144,6 +144,11 @@ void AFAWInteractableActor::Multicast_StartCanInteract_Implementation(APawn* Paw
 
 void AFAWInteractableActor::Multicast_StopCanInteract_Implementation(APawn* Pawn)
 {
+	if (Pawn == nullptr)
+	{
+		return;
+	}
+
 	InteractedPawn.Reset();
 
 	AController* PlayerController = Pawn->GetController();

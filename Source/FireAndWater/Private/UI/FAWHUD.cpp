@@ -6,22 +6,28 @@
 
 void AFAWHUD::OpenPauseMenu()
 {
-	if (PauseWidget == nullptr)
+	if (PauseWidget != nullptr)
 	{
-		PauseWidget = CreateWidget<UFAWPauseMenuWidget>(GetOwningPlayerController(), PauseWidgetClass, FName(TEXT("PauseWidget")));
-	
-		PauseWidget->AddToViewport();
+		PauseWidget->Show();
 	}
-
-	PauseWidget->Show();
 }
 
 void AFAWHUD::ClosePauseMenu()
 {
-	if (PauseWidget == nullptr)
+	if (PauseWidget != nullptr)
 	{
-		return;
+		PauseWidget->Hide();
 	}
+}
 
+void AFAWHUD::BeginPlay()
+{
+	Super::BeginPlay();
+
+	PauseWidget = CreateWidget<UFAWPauseMenuWidget>(GetOwningPlayerController(), PauseWidgetClass, FName(TEXT("PauseWidget")));
+	PauseWidget->AddToViewport();
 	PauseWidget->Hide();
+
+	MainWidget = CreateWidget(GetOwningPlayerController(), MainWidgetClass, FName(TEXT("MainWidget")));
+	MainWidget->AddToViewport();
 }

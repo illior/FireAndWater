@@ -5,6 +5,7 @@
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/Character.h"
 #include "Engine/World.h"
+#include "Net/UnrealNetwork.h"
 
 namespace FAWCharacter
 {
@@ -70,6 +71,14 @@ void UFAWCharacterMovementComponent::TickComponent(float DeltaTime, ELevelTick T
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	HandleSprint(DeltaTime);
+}
+
+void UFAWCharacterMovementComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(UFAWCharacterMovementComponent, bSprint);
+	DOREPLIFETIME(UFAWCharacterMovementComponent, TimeOnMaxSpeed);
 }
 
 float UFAWCharacterMovementComponent::GetMaxSpeed() const

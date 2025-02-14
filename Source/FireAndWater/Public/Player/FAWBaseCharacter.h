@@ -31,6 +31,8 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
+	virtual void ResetJumpState();
+
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<USpringArmComponent> SpringArmComponent;
@@ -138,7 +140,7 @@ protected:
 
 	float LastTimeDashing = 0.0f;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Dashing")
+	UPROPERTY(BlueprintReadOnly, Replicated, Category = "Dashing")
 	bool bDashing = false;
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Dashing")

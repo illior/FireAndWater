@@ -39,6 +39,7 @@ public:
 	void ForceSprint();
 
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	virtual float GetMaxSpeed() const override;
 
@@ -55,10 +56,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character Movement: Sprinting")
 	float MaxTimeToSprint = 3.0f;
 
-	UPROPERTY(BlueprintReadOnly, Category = "FAW|CharacterMovement")
+	UPROPERTY(BlueprintReadOnly, Replicated, Category = "FAW|CharacterMovement")
 	bool bSprint = false;
 
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY(BlueprintReadWrite, Replicated)
 	float TimeOnMaxSpeed = 0.0f;
 
 	FFAWCharacterGroundInfo CachedGroundInfo;

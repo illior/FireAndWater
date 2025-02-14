@@ -54,5 +54,7 @@ private:
 
 	void ApplyDamage(float Damage);
 
-	void SetHealth(float NewHealth);
+	UFUNCTION(NetMulticast, Unreliable)
+	void Multicat_SetHealth(float NewHealth);
+	void Multicat_SetHealth_Implementation(float NewHealth);
 };

@@ -22,6 +22,14 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<UFAWPauseMenuWidget> PauseWidgetClass;
 
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<UUserWidget> MainWidgetClass;
+
 	UPROPERTY(BlueprintReadOnly, Category = "UI")
 	TObjectPtr<UFAWPauseMenuWidget> PauseWidget;
+
+	UPROPERTY(BlueprintReadOnly, Category = "UI")
+	TObjectPtr<UUserWidget> MainWidget;
+
+	virtual void BeginPlay() override;
 };

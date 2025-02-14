@@ -65,12 +65,14 @@ AFAWBaseCharacter::AFAWBaseCharacter(const FObjectInitializer& ObjInit)
 
 	// Health
 	HealthComponent = CreateDefaultSubobject<UFAWHealthComponent>("HealthComponent");
+	HealthComponent->SetIsReplicated(true);
 
 	// Setup Movement
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->JumpZVelocity = 620.0f;
 	GetCharacterMovement()->AirControl = 0.4f;
 	GetCharacterMovement()->GravityScale = 1.4f;
+	GetCharacterMovement()->SetIsReplicated(true);
 }
 
 void AFAWBaseCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -78,6 +80,23 @@ void AFAWBaseCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AFAWBaseCharacter, InteractActor);
+	DOREPLIFETIME(AFAWBaseCharacter, bDashing);
+}
+
+void AFAWBaseCharacter::ResetJumpState()
+{
+	bPressedJump = false;
+	bWasJumping = false;
+	JumpKeyHoldTime = 0.0f;
+	JumpForceTimeRemaining = 0.0f;
+
+	if (!bDashing && GetCharacterMovement() && !GetCharacterMovement()->IsFalling())
+	{
+		JumpCurrentCount = 0;
+		JumpCurrentCountPreJump = 0;
+
+		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, TEXT("ResetJumpState"));
+	}
 }
 
 void AFAWBaseCharacter::AddCheckPoint(AActor* InActor)

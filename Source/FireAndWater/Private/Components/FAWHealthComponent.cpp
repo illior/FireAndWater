@@ -5,14 +5,14 @@
 UFAWHealthComponent::UFAWHealthComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
-
+	//SetIsReplicatedByDefault(true);
 }
 
 void UFAWHealthComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	SetHealth(MaxHealth);
+	Multicat_SetHealth(MaxHealth);
 
 	AActor* ComponentOwner = GetOwner();
 	if (ComponentOwner)
@@ -39,12 +39,17 @@ void UFAWHealthComponent::OnTakeRadialDamage(AActor* DamagedActor, float Damage,
 
 void UFAWHealthComponent::ApplyDamage(float Damage)
 {
+	if (GetOwner() != nullptr && !GetOwner()->HasAuthority())
+	{
+		return;
+	}
+
 	if (Damage <= 0 || IsDead())
 	{
 		return;
 	}
 
-	SetHealth(CurrentHealth - Damage);
+	Multicat_SetHealth(CurrentHealth - Damage);
 
 	if (IsDead())
 	{
@@ -52,7 +57,7 @@ void UFAWHealthComponent::ApplyDamage(float Damage)
 	}
 }
 
-void UFAWHealthComponent::SetHealth(float NewHealth)
+void UFAWHealthComponent::Multicat_SetHealth_Implementation(float NewHealth)
 {
 	const float NextHealth = FMath::Clamp(NewHealth, 0.0f, MaxHealth);
 	const float HealthDelta = NextHealth - CurrentHealth;
