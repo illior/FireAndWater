@@ -52,6 +52,8 @@ void AFAWInteractableActor::StopCanInteract(APawn* Pawn)
 
 void AFAWInteractableActor::StartInteract()
 {
+	OnStartInteract.Broadcast(this, InteractedPawn.Get());
+
 	if (ShouldHold)
 	{
 		CompleteHold = false;
@@ -68,8 +70,6 @@ void AFAWInteractableActor::StartInteract()
 			GetWorldTimerManager().SetTimer(CooldownTimer, Delegate, CooldownTime, false);
 		}
 	}
-
-	OnStartInteract.Broadcast(this, InteractedPawn.Get());
 }
 
 void AFAWInteractableActor::StopInteract()

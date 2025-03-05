@@ -85,18 +85,19 @@ void AFAWBaseCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 
 void AFAWBaseCharacter::ResetJumpState()
 {
-	bPressedJump = false;
+	Super::ResetJumpState();
+	/*bPressedJump = false;
 	bWasJumping = false;
 	JumpKeyHoldTime = 0.0f;
 	JumpForceTimeRemaining = 0.0f;
 
-	if (!bDashing && GetCharacterMovement() && !GetCharacterMovement()->IsFalling())
+	if (GetCharacterMovement() && !GetCharacterMovement()->IsFalling() && !GetCharacterMovement()->IsFlying())
 	{
 		JumpCurrentCount = 0;
 		JumpCurrentCountPreJump = 0;
 
-		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, TEXT("ResetJumpState"));
-	}
+		LastTimeDashing = 0.0f;
+	}*/
 }
 
 void AFAWBaseCharacter::AddCheckPoint(AActor* InActor)
@@ -106,6 +107,11 @@ void AFAWBaseCharacter::AddCheckPoint(AActor* InActor)
 	{
 		State->AddCheckPoint(InActor);
 	}
+}
+
+void AFAWBaseCharacter::ResetJumps()
+{
+	JumpCurrentCount = 2;
 }
 
 void AFAWBaseCharacter::BeginPlay()

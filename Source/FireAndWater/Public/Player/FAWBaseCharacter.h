@@ -50,6 +50,9 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Character")
 	void AddCheckPoint(AActor* InActor);
 
+	UFUNCTION(BlueprintCallable, Category = "Character")
+	void ResetJumps();
+
 	//~ Begin AActor Interface.
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;

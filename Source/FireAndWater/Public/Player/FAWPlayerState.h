@@ -16,6 +16,8 @@ public:
 	TSubclassOf<APawn> GetPawnClass();
 
 	void AddCheckPoint(AActor* InActor);
+
+	UFUNCTION(BlueprintCallable)
 	AActor* GetLastCheckPoint() const;
 
 protected:
